@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="#C8C7C2"
+    >
+  <TextView
+  android:id="@+id/textView1" 
+  android:layout_width="fill_parent" 
+  android:layout_height="wrap_content" 
+  android:textColor="#ffffff"
+  android:background="#C8C7C2"
+  android:text="hwwo."
+  android:textStyle="bold"
+  android:textSize="40pt" android:layout_weight="0.9"></TextView>  
+  <WebView  
+    android:id="@+id/webview"
+    android:layout_width="fill_parent" 
+    android:layout_height="fill_parent" 
+    android:layout_gravity="center"
+    android:background="#C8C7C2"
+    android:visibility="gone"/>   
+  <Button  
+    android:layout_width="wrap_content" 
+    android:layout_height="20dip" 
+    android:text="Login"
+    android:textSize="8pt"
+    android:id="@+id/login"
+    android:background="#50524E"
+    android:textColor="#ffffff"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:layout_weight="0.1" android:layout_margin="15dp" android:layout_gravity="right"
+    />
+</LinearLayout>

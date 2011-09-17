@@ -1,0 +1,5 @@
+Ignore duplicates of checkins
+Notify user of no results
+Notify user of successful checkin
+Tidy general methods
+Use android location service

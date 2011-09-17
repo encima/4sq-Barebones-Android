@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest android:versionCode="1" android:versionName="1.0"
+    package="com.hwwo" xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:icon="@drawable/icon" android:label="@string/app_name">
+        <activity android:label="@string/app_name"
+            android:name=".MainActivity" android:theme="@android:style/Theme.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity android:name=".NearbyActivity"/>
+        <activity android:name=".FriendsActivity"/>
+        <activity android:name=".EstimateActivity"/>
+        <activity android:name=".Foursquare"/>
+        <activity android:name=".FoursqLogin" android:theme="@android:style/Theme.NoTitleBar"/>
+    </application>
+    <uses-sdk android:minSdkVersion="8"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+</manifest>
