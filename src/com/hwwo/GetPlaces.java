@@ -56,7 +56,7 @@ class GetPlaces extends Thread {
 							Checkin c = new Checkin();
 							c.setID(obj.optString("id", null));
 							c.setName(obj.optString("name", null));
-							Log.i("4sqVenue", obj.optString("name", null));
+							//Log.i("4sqVenue", obj.optString("name", null));
 							if(obj.optJSONObject("location") != null) {
 								c.setAddress(obj.optJSONObject("location").optString("address", null));
 								//Log.i("4sqVenue", obj.optJSONObject("location").optString("address", null));
@@ -83,8 +83,21 @@ class GetPlaces extends Thread {
     								search.add(c);
     							}
 						}
+						GeneralMethods.writeCheckins(hDB, search, false, true);
 						Log.i("4sqVenue", "Updated places");
 						//NearbyActivity.update(locations, context);
+						Checkin c = search.firstElement();
+			    		String description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress();
+			    		Vector<String> tips = GeneralMethods.getPlaceInfo(c.getID(), hDB, hPrefs);
+			        	StringBuilder builder = new StringBuilder();
+			        	String tipString = null;
+			        	if(!tips.isEmpty()) {	        	
+				        	for(int i = 0; i < tips.size(); i++) {
+				        		builder.append("-" + tips.get(i) + "\n");
+				        	}
+				        	tipString = builder.toString();
+			        	}
+						EstimateActivity.setTheTextViewStuff(locations.firstElement(), description, tipString);
 			            handler.postAtFrontOfQueue(new Runnable() {
 							@Override
 							public void run() {
@@ -95,11 +108,6 @@ class GetPlaces extends Thread {
 								NearbyActivity.lv.setAdapter(NearbyActivity.la);
 							}
 			            });
-						Checkin c = GeneralMethods.queryPlaceById(hDB, search.firstElement().getID());
-			    		String description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress();
-						EstimateActivity.setTheTextViewStuff(locations.firstElement(), description);
-						Log.i("4sqVenue", "Updated places");
-						GeneralMethods.writeCheckins(hDB, search, false, true);
 				}
     		}catch(Exception e){
     			Log.e("Places Search", "Error searching places:" + e);

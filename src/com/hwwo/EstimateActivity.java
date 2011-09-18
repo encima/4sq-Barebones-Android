@@ -1,14 +1,15 @@
 package com.hwwo;
 
-import java.io.BufferedReader;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.InputStreamReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Vector;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -16,12 +17,15 @@ import org.json.JSONObject;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -29,9 +33,12 @@ import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,13 +47,13 @@ public class EstimateActivity extends Activity {
 	/**
 	 * @see android.app.Activity#onCreate(Bundle)
 	 */
-	static TextView _textview, tv2;
+	static TextView _textview, tv2, tipview
+	;
 	private ImageButton _imgbutton;
     String client_id = "JYS2PEKF3JADJL2KUE5VKN1U24UTVLREEYPMY3MZJBYPQPVM";
 	String client_secret = "40ES50ZFQZ0J5ASDIVPDBUFZU54JS1ZN4PUUWO023Q1UGKSD";
 	private SharedPreferences hPrefs;
-	private boolean updateTwitter = true;
-	private boolean updateFacebook = true;
+	static ImageView imgView;
 	String checkinResult = null;
 	ProgressDialog mProgress;
 
@@ -61,14 +68,30 @@ public class EstimateActivity extends Activity {
         _textview = (TextView)findViewById(R.id.TextView01);
         _textview.setText("Location here.");
         tv2 = (TextView) findViewById(R.id.TextView02);
+        tipview = (TextView) findViewById(R.id.TipView);
+        imgView = (ImageView)findViewById(R.id.fourPic);
         SQLiteDatabase hDB = getApplication().openOrCreateDatabase("HwwoDB", 1, null);
         //Vector<String> place = GeneralMethods.queryDB(hDB, "SELECT * FROM hCheckins");
         if(hPrefs.getString("4sqAccessToken", null) != null) {
         	String name =  NearbyActivity.lv.getAdapter().getItem(0).toString();
         	_textview.setText(name);
         	Checkin c = GeneralMethods.queryPlace(hDB, name);
-        	String description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress();
-        	EstimateActivity.setTheTextViewStuff(name, description);
+        	String description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress() + "\n You are heading in direction: " + hPrefs.getFloat("direction", 0);
+        	Vector<String> tips = GeneralMethods.getPlaceInfo(c.getID(), hDB, hPrefs);
+        	StringBuilder builder = new StringBuilder();
+        	String tipString = "No Tips Found";
+        	if(!tips.isEmpty()) {	        	
+	        	for(int i = 0; i < tips.size(); i++) {
+	        		builder.append("-" + tips.get(i) + "\n");
+	        	}
+	        	tipString = builder.toString();
+        	}
+        	Vector<String> image = GeneralMethods.getPlaceImages(c.getID(), hDB, hPrefs);
+        	if(!image.isEmpty()) {
+        		EstimateActivity.setImage(image.firstElement(), getApplicationContext());
+        	}
+        	
+        	EstimateActivity.setTheTextViewStuff(name, description, tipString);
         }
 
         _imgbutton = (ImageButton)findViewById(R.id.imgBtn);
@@ -76,34 +99,6 @@ public class EstimateActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				takePhoto(v);
-			}
-		});
-        
-        final Button facebookButton = (Button) findViewById(R.id.btnFacebookPost);
-        facebookButton.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				if(updateFacebook){
-					facebookButton.setBackgroundColor(Color.TRANSPARENT);
-					updateFacebook = false;
-				}else {
-					facebookButton.setBackgroundColor(Color.parseColor("#50524E"));
-					updateFacebook = true;
-				}
-			}
-		});
-        
-        final Button twitterButton = (Button) findViewById(R.id.btnTwitterPost);
-        twitterButton.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				if(updateTwitter){
-					twitterButton.setBackgroundColor(Color.TRANSPARENT);
-					updateTwitter = false;
-				}else {
-					twitterButton.setBackgroundColor(Color.parseColor("#50524E"));
-					updateTwitter = true;
-				}
 			}
 		});
         
@@ -175,17 +170,123 @@ public class EstimateActivity extends Activity {
 		});
 	}
 	
+	public static void setImage(String firstElement, Context context) {
+		//Drawable image = ImageOperations(context , firstElement,"image.jpg");
+		//Bitmap img = loadBitmap(firstElement);
+		URL newurl;
+		try {
+			newurl = new URL(firstElement);
+			Bitmap mIcon_val = BitmapFactory.decodeStream(newurl.openConnection().getInputStream());
+			imgView.setImageBitmap(mIcon_val);
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	}
+	
 	@Override
 	public void onRestoreInstanceState(Bundle savedInstanceState) {
 	  super.onRestoreInstanceState(savedInstanceState);
 	}
 		
-	public static void setTheTextViewStuff(String place, String description){
+	public static void setTheTextViewStuff(String place, String description, String tip){
 		_textview.setText(place);
 		tv2.setText(description);
+		tipview.setText(tip);
 	}
 	
-	 public void testUser() {
+	public boolean onCreateOptionsMenu(Menu menu) {
+		menu.add("Get Tips");
+		menu.add("Exit");
+		return true;
+	}
+	
+	public boolean onOptionsItemSelected(MenuItem item) {
+		if(item.getTitle().equals("Get Tips")) {
+			SQLiteDatabase hDB = getApplication().openOrCreateDatabase("HwwoDB", 1, null);
+			Checkin ID = GeneralMethods.queryPlace(hDB, _textview.getText().toString()); 
+			//Vector<String> tips = GeneralMethods.getPlaceInfo(ID.getID(), hDB);
+			//if(!tips.isEmpty()){
+			if(ID.getID() != null && !GeneralMethods.getPlaceInfo(ID.getID(), hDB, hPrefs).isEmpty()) {
+				tipview.setText(GeneralMethods.getPlaceInfo(ID.getID(), hDB, hPrefs).firstElement());
+			}else{
+				tipview.setText("No Tips found");
+			}
+				//Toast.makeText(getApplicationContext(), tips.firstElement(), Toast.LENGTH_SHORT).show();
+			//}else{
+				//Toast.makeText(getApplicationContext(), "No Tips for " + ID.getID(), Toast.LENGTH_SHORT).show();
+			//}
+		}else{
+			finish();
+		}
+		return true;
+	}
+	    
+    private Uri imageUri;
+
+    public void takePhoto(View view) {
+        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+        File photo = new File(Environment.getExternalStorageDirectory(),  "Pic.jpg");
+        intent.putExtra(MediaStore.EXTRA_OUTPUT,
+                Uri.fromFile(photo));
+        imageUri = Uri.fromFile(photo);
+        startActivityForResult(intent, TAKE_PICTURE);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+        case TAKE_PICTURE:
+            if (resultCode == Activity.RESULT_OK) {
+                Uri selectedImage = imageUri;
+                getContentResolver().notifyChange(selectedImage, null);
+                ContentResolver cr = getContentResolver();
+                Bitmap bitmap;
+                try {
+                     bitmap = android.provider.MediaStore.Images.Media
+                     .getBitmap(cr, selectedImage);
+                     
+                     int width = bitmap.getWidth();
+                     int height = bitmap.getHeight();
+                     int newWidth = _imgbutton.getWidth();
+                     int newHeight = _imgbutton.getHeight();
+                     
+                     //calculate the scale - in this case = 0.4f
+                     float scaleWidth = ((float) newWidth) / width;
+                     float scaleHeight = ((float) newHeight) / height;
+                     
+                     //create a matrix for the manipulation
+                     Matrix matrix = new Matrix();
+                     // resize the bit map
+                     matrix.postScale(scaleWidth, scaleHeight);
+              
+                     // recreate the new Bitmap
+                     Bitmap resizedBitmap = Bitmap.createBitmap(bitmap, 0, 0,
+                                       width, height, matrix, true);
+           
+                     
+                     _imgbutton.setImageBitmap(resizedBitmap);                    
+                     Toast.makeText(this, selectedImage.toString(),
+                            Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, "Failed to load", Toast.LENGTH_SHORT)
+                            .show();
+                    Log.e("Camera", e.toString());
+                }
+            }
+        }
+    }
+	    
+	    public void checkResult(String result) {
+	    	_textview.setText(result);
+	    }
+}
+
+/* public void testUser() {
 	        // extract the OAUTH access token if it exists
 	    	String code;
 	    	if(hPrefs.getString("4sqAccessToken", null) != null) {
@@ -213,82 +314,4 @@ public class EstimateActivity extends Activity {
 	        		Toast.makeText(this, "Unknown login error", Toast.LENGTH_SHORT).show();
 	        	}
 	    }
-
-	    // Calls a URI and returns the answer as a JSON object
-	    private JSONObject executeHttpGet(String uri) throws Exception{
-	    	HttpGet req = new HttpGet(uri);
-
-	    	HttpClient client = new DefaultHttpClient();
-	    	HttpResponse resLogin = client.execute(req);
-	    	BufferedReader r = new BufferedReader(
-	    			new InputStreamReader(resLogin.getEntity()
-	    					.getContent()));
-	    	StringBuilder sb = new StringBuilder();
-	    	String s = null;
-	    	while ((s = r.readLine()) != null) {
-	    		sb.append(s);
-	    	}
-
-	    	return new JSONObject(sb.toString());
-	    }
-	    
-	    private Uri imageUri;
-
-	    public void takePhoto(View view) {
-	        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
-	        File photo = new File(Environment.getExternalStorageDirectory(),  "Pic.jpg");
-	        intent.putExtra(MediaStore.EXTRA_OUTPUT,
-	                Uri.fromFile(photo));
-	        imageUri = Uri.fromFile(photo);
-	        startActivityForResult(intent, TAKE_PICTURE);
-	    }
-
-	    @Override
-	    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-	        super.onActivityResult(requestCode, resultCode, data);
-	        switch (requestCode) {
-	        case TAKE_PICTURE:
-	            if (resultCode == Activity.RESULT_OK) {
-	                Uri selectedImage = imageUri;
-	                getContentResolver().notifyChange(selectedImage, null);
-	                ContentResolver cr = getContentResolver();
-	                Bitmap bitmap;
-	                try {
-	                     bitmap = android.provider.MediaStore.Images.Media
-	                     .getBitmap(cr, selectedImage);
-	                     
-	                     int width = bitmap.getWidth();
-	                     int height = bitmap.getHeight();
-	                     int newWidth = _imgbutton.getWidth();
-	                     int newHeight = _imgbutton.getHeight();
-	                     
-	                     //calculate the scale - in this case = 0.4f
-	                     float scaleWidth = ((float) newWidth) / width;
-	                     float scaleHeight = ((float) newHeight) / height;
-	                     
-	                     //create a matrix for the manipulation
-	                     Matrix matrix = new Matrix();
-	                     // resize the bit map
-	                     matrix.postScale(scaleWidth, scaleHeight);
-	              
-	                     // recreate the new Bitmap
-	                     Bitmap resizedBitmap = Bitmap.createBitmap(bitmap, 0, 0,
-	                                       width, height, matrix, true);
-	           
-	                     
-	                     _imgbutton.setImageBitmap(resizedBitmap);                    
-	                     Toast.makeText(this, selectedImage.toString(),
-	                            Toast.LENGTH_LONG).show();
-	                } catch (Exception e) {
-	                    Toast.makeText(this, "Failed to load", Toast.LENGTH_SHORT)
-	                            .show();
-	                    Log.e("Camera", e.toString());
-	                }
-	            }
-	        }
-	    }
-	    
-	    public void checkResult(String result) {
-	    	_textview.setText(result);
-	    }
-}
+	    */

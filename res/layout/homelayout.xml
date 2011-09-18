@@ -1,33 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
   xmlns:android="http://schemas.android.com/apk/res/android"
-  android:layout_width="fill_parent"
-  android:layout_height="fill_parent" android:orientation="vertical" android:weightSum="1.0">
-	<TextView android:text="@+id/TextView01" android:id="@+id/TextView01" 
-	android:layout_weight=".1" android:layout_width="fill_parent" android:textStyle="bold"
-	android:layout_height="5dp" android:textSize="25dp" android:textColor="#ffffff">
-	</TextView>
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:weightSum="1.0">
+	<TextView android:text="@+id/TextView01" android:id="@+id/TextView01" android:layout_width="fill_parent" android:textStyle="bold"
+	android:layout_height="wrap_content" android:textSize="30dp" android:textColor="#ffffff"/>
 	<TextView android:id="@+id/TextView02" 
-	android:layout_weight=".2" android:layout_width="300dp" 
-	android:layout_height="20dp" android:textSize="20dp" android:textColor="#ffffff">
-	</TextView>
-	<ImageButton android:layout_weight=".5" android:layout_height="60px" android:id="@+id/imgBtn" 
-			android:layout_width="200dp" android:text="photo." android:layout_margin="2dp" android:layout_gravity="right"/>
-	<LinearLayout android:layout_width="fill_parent" android:layout_height="60dp" 
-			android:orientation="horizontal" android:weightSum="1.0">
-		<Button android:text="t" android:layout_weight=".25" android:layout_height="fill_parent" 
-				android:id="@+id/btnTwitterPost" android:layout_width="0dip" android:background="#50524E"
-				android:layout_margin="2dp" android:textColor="#ffffff" android:textSize="8pt"
-				android:textStyle="bold"> 
-		</Button>
-		<Button android:text="f" android:layout_weight=".25" android:layout_height="fill_parent" 
-				android:id="@+id/btnFacebookPost" android:layout_width="0dip" android:background="#50524E"
-				android:layout_margin="2dp" android:textColor="#ffffff" android:textSize="8pt"
-				android:textStyle="bold">
-		</Button>
-		<Button android:text="check in." android:layout_weight=".5" android:layout_height="fill_parent" 
-				android:id="@+id/btnCheckIn" android:layout_width="0dip" android:background="#50524E"
-				android:layout_margin="2dp" android:textColor="#ffffff" android:textSize="8pt"> 
-		</Button>
-	</LinearLayout>
+	 android:layout_width="fill_parent" 
+	android:layout_height="wrap_content" android:textSize="18dp" android:textColor="#ffffff"/>
+    <View
+     android:layout_height="2dip" android:layout_width="fill_parent"
+     android:background="#FF909090" />
+    <ScrollView android:layout_width="fill_parent" android:layout_height="wrap_content">
+		<TextView android:id="@+id/TipView"  android:layout_width="fill_parent" 
+		android:layout_height="fill_parent" android:textSize="15dp" android:textColor="#ffffff" />
+	</ScrollView>
+    <RelativeLayout android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/relativeLayout1">
+        <ImageView android:layout_height="200px" android:layout_width="200px" android:id="@+id/fourPic" android:layout_toLeftOf="@+id/imgBtn" android:layout_alignLeft="@+id/TipView"/>
+        <ImageButton android:layout_height="200px" android:layout_width="200px" android:id="@+id/imgBtn" android:layout_alignParentRight="true"/>
+    </RelativeLayout>
+	<Button android:text="check in." android:layout_height="wrap_content" 
+			android:id="@+id/btnCheckIn" android:layout_width="fill_parent" android:background="#50524E"
+			android:layout_margin="2dp" android:textColor="#ffffff" android:textSize="8pt"/> 
 </LinearLayout>

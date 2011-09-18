@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:stretchColumns="1">
+
+    <TableRow>
+        <TextView
+        	android:text="Title"
+            android:layout_column="1"
+            android:padding="3dip"
+            android:id="@+id/TextView01" />
+    </TableRow>
+
+    <TableRow>
+		<ScrollView>
+			<TextView android:id="@+id/TextView02" 
+			 android:layout_width="fill_parent" 
+			android:layout_height="fill_parent" android:textSize="15dp" android:textColor="#ffffff"/>
+		</ScrollView>
+    </TableRow>
+
+    <TableRow>
+        <ScrollView android:layout_column="1">
+			<TextView android:id="@+id/TipView"  android:layout_width="fill_parent" 
+			android:layout_height="fill_parent" android:textSize="20dp" android:textColor="#ffffff" />
+		</ScrollView>
+        <ImageButton android:id="@+id/imgBtn" android:text="photo." android:layout_gravity="right"/>
+    </TableRow>
+
+    <View
+        android:layout_height="2dip"
+        android:background="#FF909090" />
+
+    <TableRow>
+        <Button
+        	android:id="@+id/btnCheckIn"
+            android:text="check in."
+            android:padding="3dip" />
+    </TableRow>
+</TableLayout>

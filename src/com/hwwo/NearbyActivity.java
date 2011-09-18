@@ -64,11 +64,22 @@ public class NearbyActivity extends ListActivity {
 		    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 		    	String place = ((TextView) view).getText().toString();
 		    	Checkin c = GeneralMethods.queryPlace(hDB, place);
-		    	//String ID = c.getID();
-		    	//c = GeneralMethods.queryPlaceById(hDB, ID);
 		    	String description  = null;
-		    	if(c != null) description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress();
-		    	EstimateActivity.setTheTextViewStuff(place, description);
+		    	description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress() + "\n You are heading in direction: " + hPrefs.getFloat("direction", 0);
+		    	Vector<String> tips = GeneralMethods.getPlaceInfo(c.getID(), hDB, hPrefs);
+	        	StringBuilder builder = new StringBuilder();
+	        	String tipString = null;
+	        	if(!tips.isEmpty()) {	        	
+		        	for(int i = 0; i < tips.size(); i++) {
+		        		builder.append("-" + tips.get(i) + "\n");
+		        	}
+		        	tipString = builder.toString();
+	        	}
+		    	EstimateActivity.setTheTextViewStuff(place, description, tipString);
+	        	Vector<String> image = GeneralMethods.getPlaceImages(c.getID(), hDB, hPrefs);
+	        	if(!image.isEmpty()) {
+	        		EstimateActivity.setImage(image.firstElement(), getApplicationContext());
+	        	}
 		    	MainActivity.setTab(1);
 		    }
 		});

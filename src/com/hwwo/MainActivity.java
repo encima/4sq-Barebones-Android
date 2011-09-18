@@ -227,6 +227,7 @@ public class MainActivity extends TabActivity implements OnClickListener{
 			if (e.sensor.getType()==Sensor.TYPE_ORIENTATION) {
 				direction = e.values[0];
 				direction = trueNorthDirectionConversion(direction, true);
+				hPrefs.edit().putFloat("direction", direction);
 			}
 		}
 		

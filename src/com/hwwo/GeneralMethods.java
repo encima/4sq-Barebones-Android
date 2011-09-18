@@ -149,18 +149,21 @@ public class GeneralMethods {
 	        	}
 	    }
 	 
-	 public static Vector<String> getPlaceInfo(String name, SQLiteDatabase hDB) {
+	 public static Vector<String> getPlaceInfo(String name, SQLiteDatabase hDB, SharedPreferences hPrefs) {
 		 Vector<String> tipVector = new Vector<String>();
+		 if(hPrefs.getString("4sqAccessToken", null) != null) {
+	    		String code = hPrefs.getString("4sqAccessToken", null);
 	    		try {
 	    				JSONObject userJson = executeHttpGet(
-	    						"https://api.foursquare.com/v2/venues/" + name);
+	    						"https://api.foursquare.com/v2/venues/" + name + "?oauth_token=" + code);
 	    				// Get return code
 	    				int returnCode = Integer.parseInt(userJson.getJSONObject("meta").getString("code"));
 	    				// 200 = OK
 	    				if(returnCode == 200){
 	    					JSONObject place = userJson.getJSONObject("response").getJSONObject("venue");
+	    					Log.i("4sqVenue", place.toString());
 		    					Checkin c = new Checkin();
-								JSONArray tip = place.getJSONObject("venue").getJSONObject("tips").getJSONArray("groups");
+								JSONArray tip = place.getJSONObject("tips").getJSONArray("groups");
 								for(int i  = 0; i < tip.length(); i++) {
 									JSONArray tips = tip.getJSONObject(i).getJSONArray("items");
 										if(tips.length() != 0) {
@@ -177,7 +180,48 @@ public class GeneralMethods {
 	    		}catch(Exception e){
 	    			
 	    		}
+		 }
 		return tipVector;
+	 }
+	 
+	 public static Vector<String> getPlaceImages(String name, SQLiteDatabase hDB, SharedPreferences hPrefs) {
+		 Vector<String> placeVector = new Vector<String>();
+		 if(hPrefs.getString("4sqAccessToken", null) != null) {
+	    		String code = hPrefs.getString("4sqAccessToken", null);
+	    		try {
+	    				JSONObject userJson = executeHttpGet(
+	    						"https://api.foursquare.com/v2/venues/" + name + "?oauth_token=" + code);
+	    				// Get return code
+	    				int returnCode = Integer.parseInt(userJson.getJSONObject("meta").getString("code"));
+	    				// 200 = OK
+	    				if(returnCode == 200){
+	    					JSONObject place = userJson.getJSONObject("response").getJSONObject("venue");
+	    					Log.i("4sqVenue", place.toString());
+		    					Checkin c = new Checkin();
+								JSONArray tip = place.getJSONObject("photos").getJSONArray("groups");
+								for(int i  = 0; i < tip.length(); i++) {
+									JSONArray tips = tip.getJSONObject(i).getJSONArray("items");
+										if(tips.length() != 0) {
+											for(int j = 0; j<tip.length(); j++) {
+												JSONArray urlSize = tips.getJSONObject(j).getJSONObject("sizes").getJSONArray("items");
+													for(int k = 0; k< urlSize.length(); k++) {
+														if(urlSize.getJSONObject(k).optString("width", null).equals("100")) {
+															placeVector.add(urlSize.getJSONObject(k).optString("url", null));
+															Log.i("4sqVenue", urlSize.getJSONObject(k).optString("url", null));
+														}
+													}
+											}
+											//c.setTips(tips);
+										}else{
+											//c.setTips(null);
+										}
+								}
+	    				}
+	    		}catch(Exception e){
+	    			
+	    		}
+		 }
+		return placeVector;
 	 }
 		 
 		public static void writeCheckins(SQLiteDatabase hDB, Vector<Checkin> checkins, boolean userCheckin, boolean delete) {
