@@ -1,7 +1,5 @@
 package com.hwwo;
 
-import java.util.Vector;
-
 import android.app.TabActivity;
 import android.content.Context;
 import android.content.Intent;
@@ -18,6 +16,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
@@ -44,6 +43,8 @@ public class MainActivity extends TabActivity implements OnClickListener{
     SensorManager mSenManager;
     SensorEventListener mSenListener;
     
+    public static Handler handler;
+    
     public static Thread getPlaces = null;
     
     float direction;
@@ -52,7 +53,7 @@ public class MainActivity extends TabActivity implements OnClickListener{
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        
+        handler = new Handler();
         hPrefs = getSharedPreferences("h_prefs", MODE_PRIVATE); 	
         
         if(hPrefs.getString("4sqAccessToken", null) == null) {
@@ -187,7 +188,7 @@ public class MainActivity extends TabActivity implements OnClickListener{
 			String Text = "My current location is: " + "Latitude = " + loc.getLatitude() + "Longitude = " + loc.getLongitude() + " Heading: " + direction;
 			Toast.makeText( getApplicationContext(), Text, Toast.LENGTH_SHORT).show();
 			SQLiteDatabase hDB = getApplication().openOrCreateDatabase("HwwoDB", 1, null);
-			getPlaces = new GetPlaces(getApplicationContext(), null, l, hDB);
+			getPlaces = new GetPlaces(getApplicationContext(), null, l, hDB, handler);
 			getPlaces.start();
 			hDB.close();
 		}

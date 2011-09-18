@@ -81,6 +81,7 @@ public class NearbyActivity extends ListActivity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		menu.add("Near You");
 		menu.add("Search");
+		menu.add("Exit");
 		return true;
 	}
 	
@@ -109,7 +110,7 @@ public class NearbyActivity extends ListActivity {
 					  search.clear();
 					  if(hPrefs.getString("loc", null) != null) {
 						  if(MainActivity.getPlaces.isAlive()) MainActivity.getPlaces.interrupt();
-						  MainActivity.getPlaces = new GetPlaces(getApplicationContext(), value, hPrefs.getString("loc", null), hDB);
+						  MainActivity.getPlaces = new GetPlaces(getApplicationContext(), value, hPrefs.getString("loc", null), hDB, MainActivity.handler);
 						  MainActivity.getPlaces.start();
 					  }
 					  //refresh(search);
@@ -139,23 +140,15 @@ public class NearbyActivity extends ListActivity {
 		alert.show();
 	}
 	
-	public static void update(Vector<String> places, Context context) {
-		la = new ArrayAdapter<String>(context, R.layout.places_item, places);
-		lv.setAdapter(la);
-		la.notifyDataSetChanged();
-	}
-	
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if(item.getTitle().equals("Near You")) {
-			if(c != null) {
-				Toast.makeText(getApplicationContext(), "l" + c.getLatitude() + "lo" + c.getLongitude(), Toast.LENGTH_LONG).show();
 			final ProgressDialog progD = ProgressDialog.show(NearbyActivity.this, "Searching For: ", "Places Near You", true);
 			final Handler handler = new Handler() {
 			   public void handleMessage(Message msg) {
 				  nearby.clear();
 				  //nearby = GeneralMethods.searchPlaces(context, hPrefs, hDB, null, c);
 				  if(hPrefs.getString("loc", null) != null) {
-					  Thread getPlaces = new GetPlaces(getApplicationContext(), null, hPrefs.getString("loc", null), hDB);
+					  Thread getPlaces = new GetPlaces(getApplicationContext(), null, hPrefs.getString("loc", null), hDB, MainActivity.handler);
 					  getPlaces.start();
 				  }
 				  //refresh(nearby);
@@ -173,11 +166,10 @@ public class NearbyActivity extends ListActivity {
 			      }
 			   };
 			checkUpdate.start();
-			}else{
-				Toast.makeText(getApplicationContext(), "l", Toast.LENGTH_LONG).show();
-			}
 		}else if(item.getTitle().equals("Search")) {
 			search();
+		}else{
+			finish();
 		}
 		return true;
 	}

@@ -8,7 +8,7 @@ import org.json.JSONObject;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
-import android.location.Location;
+import android.os.Handler;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 
@@ -18,16 +18,18 @@ class GetPlaces extends Thread {
 	String query;
 	String l;
 	SQLiteDatabase hDB;
+	Handler handler;
 	
-	public GetPlaces(Context context, String q, String l, SQLiteDatabase hDB) {
+	public GetPlaces(Context context, String q, String l, SQLiteDatabase hDB, Handler handler) {
 		this.context = context;
 		this.query = q;
 		this.l = l;
 		this.hDB = hDB;
+		this.handler = handler;
 	}
 	
 	public void run() {
-		Vector<String> locations = new Vector<String>();
+		final Vector<String> locations = new Vector<String>();
     	Vector<Checkin> search = new Vector<Checkin>();
     	SharedPreferences hPrefs = context.getSharedPreferences("h_prefs", 0); 	
     	if(hPrefs.getString("4sqAccessToken", null) != null) {
@@ -83,8 +85,16 @@ class GetPlaces extends Thread {
 						}
 						Log.i("4sqVenue", "Updated places");
 						//NearbyActivity.update(locations, context);
-						NearbyActivity.la = new ArrayAdapter<String>(context, R.layout.places_item, locations);
-						NearbyActivity.la.notifyDataSetChanged();
+			            handler.postAtFrontOfQueue(new Runnable() {
+							@Override
+							public void run() {
+								NearbyActivity.la.clear();
+								NearbyActivity.la.notifyDataSetChanged();
+								NearbyActivity.la = new ArrayAdapter<String>(context, R.layout.places_item, locations);
+								NearbyActivity.la.notifyDataSetChanged();
+								NearbyActivity.lv.setAdapter(NearbyActivity.la);
+							}
+			            });
 						Checkin c = GeneralMethods.queryPlaceById(hDB, search.firstElement().getID());
 			    		String description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress();
 						EstimateActivity.setTheTextViewStuff(locations.firstElement(), description);
