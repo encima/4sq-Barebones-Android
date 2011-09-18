@@ -1,21 +1,22 @@
 package com.hwwo;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.util.Vector;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.json.JSONObject;
-
-import android.R.color;
 import android.app.TabActivity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -23,7 +24,6 @@ import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.Button;
 import android.widget.TabHost;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,6 +38,15 @@ public class MainActivity extends TabActivity implements OnClickListener{
     private static TabHost tabHost;
     private static int tabWeAreOn;
     private SharedPreferences hPrefs;
+    
+    LocationManager mLocManager;
+    LocationListener mLocListener;
+    SensorManager mSenManager;
+    SensorEventListener mSenListener;
+    
+    public static Thread getPlaces = null;
+    
+    float direction;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -97,6 +106,30 @@ public class MainActivity extends TabActivity implements OnClickListener{
         tabWeAreOn = 1;
         tabHost.setCurrentTab(tabWeAreOn);
         ((TextView)tabHost.getCurrentTabView()).setTextColor(Color.parseColor("#50524E"));
+        
+		mLocManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+		mLocListener = new LocListen();
+		mLocManager.requestLocationUpdates( LocationManager.GPS_PROVIDER, 15000, 0, mLocListener);
+		mLocManager.requestLocationUpdates( LocationManager.NETWORK_PROVIDER, 15000, 0, mLocListener);
+		Toast.makeText(getApplicationContext(), "Getting Location", Toast.LENGTH_SHORT).show();
+		
+		mSenManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		mSenListener = new mSenListen();
+		mSenManager.registerListener(mSenListener, mSenManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_FASTEST);
+    }
+    
+    @Override
+   protected void onPause() {
+    	super.onPause();
+    	mLocManager.removeUpdates(mLocListener);
+    	mSenManager.unregisterListener(mSenListener);
+    }
+    
+    @Override
+    protected void onResume() {
+    	super.onResume();
+    	mLocManager.requestLocationUpdates( LocationManager.GPS_PROVIDER, 1000, 10, mLocListener);
+    	mSenManager.registerListener(mSenListener, mSenManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_FASTEST);
     }
     
     class MyGestureDetector extends SimpleOnGestureListener {
@@ -140,6 +173,80 @@ public class MainActivity extends TabActivity implements OnClickListener{
 	@Override
 	public void onClick(View v) {
         //Filter f = (Filter) v.getTag();
-        //FilterFullscreenActivity.show(this, input, f);		
+        //FilterFullscreenActivity.show(this, input, f);		 
+	}
+	
+	public class LocListen implements LocationListener
+	{
+		@Override
+		public void onLocationChanged(Location loc)
+		{
+			Log.i("4sqVenue", "Location Changed");
+			String l = loc.getLatitude() + "," + loc.getLongitude();
+			hPrefs.edit().putString("loc", l).commit();
+			String Text = "My current location is: " + "Latitude = " + loc.getLatitude() + "Longitude = " + loc.getLongitude() + " Heading: " + direction;
+			Toast.makeText( getApplicationContext(), Text, Toast.LENGTH_SHORT).show();
+			SQLiteDatabase hDB = getApplication().openOrCreateDatabase("HwwoDB", 1, null);
+			getPlaces = new GetPlaces(getApplicationContext(), null, l, hDB);
+			getPlaces.start();
+			hDB.close();
+		}
+		 
+		@Override
+		public void onProviderDisabled(String provider)
+		{
+			Toast.makeText( getApplicationContext(),
+			"Gps Disabled",
+			Toast.LENGTH_SHORT ).show();
+		}
+		 
+		@Override
+		public void onProviderEnabled(String provider)
+		{
+			Toast.makeText( getApplicationContext(),
+			"Gps Enabled",
+			Toast.LENGTH_SHORT).show();
+		}
+		 
+		@Override
+		public void onStatusChanged(String provider, int status, Bundle extras)
+		{
+		 
+		}
+	}
+	
+	public class mSenListen implements SensorEventListener {
+
+		@Override
+		public void onAccuracyChanged(Sensor arg0, int arg1) {
+		}
+
+		@Override
+		public void onSensorChanged(SensorEvent e) {
+			if (e.sensor.getType()==Sensor.TYPE_ORIENTATION) {
+				direction = e.values[0];
+				direction = trueNorthDirectionConversion(direction, true);
+			}
+		}
+		
+		public float trueNorthDirectionConversion(float inDirection, boolean toTrueNorth) {
+			if (toTrueNorth) {
+				// Convert from SensorManager to EXIF direction
+				inDirection = inDirection + 90;
+				if (inDirection >= 360) {
+					inDirection = inDirection - 360;
+				}
+				
+			} else {
+				// Convert from EXIF direction to SensorManager
+				inDirection = inDirection - 90;
+				if (inDirection < 0) {
+					inDirection = inDirection + 360;
+				}
+			}
+			return inDirection;
+
+		}
+		
 	}
 }

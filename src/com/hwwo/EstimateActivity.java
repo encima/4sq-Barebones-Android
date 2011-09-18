@@ -3,6 +3,7 @@ package com.hwwo;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.util.Vector;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -39,7 +40,7 @@ public class EstimateActivity extends Activity {
 	/**
 	 * @see android.app.Activity#onCreate(Bundle)
 	 */
-	static TextView _textview;
+	static TextView _textview, tv2;
 	private ImageButton _imgbutton;
     String client_id = "JYS2PEKF3JADJL2KUE5VKN1U24UTVLREEYPMY3MZJBYPQPVM";
 	String client_secret = "40ES50ZFQZ0J5ASDIVPDBUFZU54JS1ZN4PUUWO023Q1UGKSD";
@@ -48,6 +49,7 @@ public class EstimateActivity extends Activity {
 	private boolean updateFacebook = true;
 	String checkinResult = null;
 	ProgressDialog mProgress;
+
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -58,8 +60,18 @@ public class EstimateActivity extends Activity {
 		
         _textview = (TextView)findViewById(R.id.TextView01);
         _textview.setText("Location here.");
-        
-        _imgbutton = (ImageButton) findViewById(R.id.ImageButton01);
+        tv2 = (TextView) findViewById(R.id.TextView02);
+        SQLiteDatabase hDB = getApplication().openOrCreateDatabase("HwwoDB", 1, null);
+        //Vector<String> place = GeneralMethods.queryDB(hDB, "SELECT * FROM hCheckins");
+        if(hPrefs.getString("4sqAccessToken", null) != null) {
+        	String name =  NearbyActivity.lv.getAdapter().getItem(0).toString();
+        	_textview.setText(name);
+        	Checkin c = GeneralMethods.queryPlace(hDB, name);
+        	String description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress();
+        	EstimateActivity.setTheTextViewStuff(name, description);
+        }
+
+        _imgbutton = (ImageButton)findViewById(R.id.imgBtn);
         _imgbutton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
@@ -163,8 +175,14 @@ public class EstimateActivity extends Activity {
 		});
 	}
 	
-	public static void setTheTextViewStuff(String str){
-		_textview.setText(str);
+	@Override
+	public void onRestoreInstanceState(Bundle savedInstanceState) {
+	  super.onRestoreInstanceState(savedInstanceState);
+	}
+		
+	public static void setTheTextViewStuff(String place, String description){
+		_textview.setText(place);
+		tv2.setText(description);
 	}
 	
 	 public void testUser() {

@@ -1,5 +1,7 @@
 package com.hwwo;
 
+import java.util.Vector;
+
 public class Checkin {
 	
 	private String id;
@@ -8,6 +10,8 @@ public class Checkin {
 	private double lat, lng;
 	private String category;
 	private int checkinCount;
+	private Vector<String> tips;
+	private Vector<String> images;
 
 	void setID(String id) {
 		this.id = id;
@@ -63,6 +67,22 @@ public class Checkin {
 
 	double getCheckinCount() {
 		return checkinCount;
+	}
+
+	public Vector<String> getTips() {
+		return tips;
+	}
+
+	public void setTips(Vector<String> tips) {
+		this.tips = tips;
+	}
+
+	public Vector<String> getImages() {
+		return images;
+	}
+
+	public void setImages(Vector<String> images) {
+		this.images = images;
 	}
 
 }

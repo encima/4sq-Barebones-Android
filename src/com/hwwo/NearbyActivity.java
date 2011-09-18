@@ -9,9 +9,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,6 +23,7 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 public class NearbyActivity extends ListActivity {
@@ -34,20 +37,24 @@ public class NearbyActivity extends ListActivity {
 	Vector<String> nearby = new Vector<String>();
 	Vector<String> search = new Vector<String>();
 	Context context;
+	Location c = null;
+	static ListView lv;
+	static ArrayAdapter<String> la;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		//setContentView(R.layout.placeslayout);
 
-		ListView lv = getListView();
+		lv = getListView();
 		context = getApplicationContext();
 		hDB = getApplicationContext().openOrCreateDatabase("HwwoDB", 1, null);
 		hPrefs = getSharedPreferences("h_prefs", MODE_PRIVATE);
 		if(hPrefs.getString("4sqAccessToken", null) != null){
 			refresh(GeneralMethods.queryDB(hDB, "SELECT name FROM hCheckins"));
 		}else{
-			setListAdapter(new ArrayAdapter<String>(getApplicationContext(), R.layout.places_item, COUNTRIES));
+			la = new ArrayAdapter<String>(getApplicationContext(), R.layout.places_item, COUNTRIES);
+			setListAdapter(la);
 		}
 		lv.setCacheColorHint(0);
 		lv.setTextFilterEnabled(true);
@@ -55,7 +62,13 @@ public class NearbyActivity extends ListActivity {
 		
 		lv.setOnItemClickListener(new OnItemClickListener() {
 		    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-		    	EstimateActivity.setTheTextViewStuff(((TextView) view).getText().toString());
+		    	String place = ((TextView) view).getText().toString();
+		    	Checkin c = GeneralMethods.queryPlace(hDB, place);
+		    	//String ID = c.getID();
+		    	//c = GeneralMethods.queryPlaceById(hDB, ID);
+		    	String description  = null;
+		    	if(c != null) description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress();
+		    	EstimateActivity.setTheTextViewStuff(place, description);
 		    	MainActivity.setTab(1);
 		    }
 		});
@@ -72,7 +85,9 @@ public class NearbyActivity extends ListActivity {
 	}
 	
 	public void refresh(Vector<String> listVector) {
-		setListAdapter(new ArrayAdapter<String>(getApplicationContext(), R.layout.places_item, listVector));
+		la = new ArrayAdapter<String>(getApplicationContext(), R.layout.places_item, listVector);
+		lv.setAdapter(la);
+		la.notifyDataSetChanged();
 	}
 	
 	public void search() {
@@ -92,8 +107,12 @@ public class NearbyActivity extends ListActivity {
 				final Handler handler = new Handler() {
 				   public void handleMessage(Message msg) {
 					  search.clear();
-					  search = GeneralMethods.searchPlaces(getApplicationContext(), hPrefs, hDB, value);
-					  refresh(search);
+					  if(hPrefs.getString("loc", null) != null) {
+						  if(MainActivity.getPlaces.isAlive()) MainActivity.getPlaces.interrupt();
+						  MainActivity.getPlaces = new GetPlaces(getApplicationContext(), value, hPrefs.getString("loc", null), hDB);
+						  MainActivity.getPlaces.start();
+					  }
+					  //refresh(search);
 				      progD.dismiss();
 				      }
 				   };
@@ -120,14 +139,26 @@ public class NearbyActivity extends ListActivity {
 		alert.show();
 	}
 	
+	public static void update(Vector<String> places, Context context) {
+		la = new ArrayAdapter<String>(context, R.layout.places_item, places);
+		lv.setAdapter(la);
+		la.notifyDataSetChanged();
+	}
+	
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if(item.getTitle().equals("Near You")) {
+			if(c != null) {
+				Toast.makeText(getApplicationContext(), "l" + c.getLatitude() + "lo" + c.getLongitude(), Toast.LENGTH_LONG).show();
 			final ProgressDialog progD = ProgressDialog.show(NearbyActivity.this, "Searching For: ", "Places Near You", true);
 			final Handler handler = new Handler() {
 			   public void handleMessage(Message msg) {
 				  nearby.clear();
-				  nearby = GeneralMethods.searchPlaces(context, hPrefs, hDB, null);	
-				  refresh(nearby);
+				  //nearby = GeneralMethods.searchPlaces(context, hPrefs, hDB, null, c);
+				  if(hPrefs.getString("loc", null) != null) {
+					  Thread getPlaces = new GetPlaces(getApplicationContext(), null, hPrefs.getString("loc", null), hDB);
+					  getPlaces.start();
+				  }
+				  //refresh(nearby);
 			      progD.dismiss();
 			      }
 			   };
@@ -141,7 +172,10 @@ public class NearbyActivity extends ListActivity {
 			      handler.sendEmptyMessage(0);
 			      }
 			   };
-			checkUpdate.start();					
+			checkUpdate.start();
+			}else{
+				Toast.makeText(getApplicationContext(), "l", Toast.LENGTH_LONG).show();
+			}
 		}else if(item.getTitle().equals("Search")) {
 			search();
 		}

@@ -29,7 +29,7 @@ public class SearchActivity extends Activity {
 				if(!searchTerm.getText().toString().equals("")) {
 					SharedPreferences hPrefs = getSharedPreferences("h_prefs", MODE_PRIVATE);
 					SQLiteDatabase hDB = getApplicationContext().openOrCreateDatabase("HwwoDB", 1, null);
-					GeneralMethods.searchPlaces(getApplicationContext(), hPrefs, hDB, searchTerm.getText().toString());
+					//GeneralMethods.searchPlaces(getApplicationContext(), hPrefs, hDB, searchTerm.getText().toString());
 					finish();
 				}else{
 					Toast.makeText(getApplicationContext(), "Come on, I think we both know this is an empty box", Toast.LENGTH_LONG).show();

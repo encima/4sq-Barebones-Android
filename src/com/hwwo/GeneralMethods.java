@@ -3,7 +3,6 @@ package com.hwwo;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Timer;
 import java.util.Vector;
 
 import org.apache.http.HttpEntity;
@@ -22,7 +21,9 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -31,9 +32,13 @@ public class GeneralMethods {
 	public static SQLiteDatabase createDB(Context context) {
 		SQLiteDatabase hDB = context.openOrCreateDatabase("HwwoDB", 1, null);
 		String createFriendsTable = "CREATE TABLE IF NOT EXISTS hFriends (id VARCHAR, name VARCHAR, photo VARCHAR, gender VARCHAR, city VARCHAR);";
-		String createCheckinTable = "CREATE TABLE IF NOT EXISTS hCheckins (id VARCHAR, name VARCHAR, address VARCHAR, lat FLOAT, long FLOAT, category VARCHAR, checkinCount NUMBER, userCheckin NUMBER);";
+		String createCheckinTable = "CREATE TABLE IF NOT EXISTS hCheckins (id VARCHAR, name VARCHAR, address VARCHAR, lat FLOAT, long FLOAT, category VARCHAR, checkinCount NUMBER, userCheckin NUMBER, tips VARCHAR, images VARCHAR);";
+		String createTipsTable = "CREATE TABLE IF NOT EXISTS hTips(id VARCHAR, tip VARCHAR);";
+		String createImageTable = "CREATE TABLE IF NOT EXISTS hTips(id VARCHAR, image VARCHAR);";
 		hDB.execSQL(createFriendsTable);
 		hDB.execSQL(createCheckinTable);
+		hDB.execSQL(createTipsTable);
+		hDB.execSQL(createImageTable);
 		return hDB;
 	}
 	
@@ -143,6 +148,37 @@ public class GeneralMethods {
 	        		Toast.makeText(context, "Unknown login error", Toast.LENGTH_SHORT).show();
 	        	}
 	    }
+	 
+	 public static Vector<String> getPlaceInfo(String name, SQLiteDatabase hDB) {
+		 Vector<String> tipVector = new Vector<String>();
+	    		try {
+	    				JSONObject userJson = executeHttpGet(
+	    						"https://api.foursquare.com/v2/venues/" + name);
+	    				// Get return code
+	    				int returnCode = Integer.parseInt(userJson.getJSONObject("meta").getString("code"));
+	    				// 200 = OK
+	    				if(returnCode == 200){
+	    					JSONObject place = userJson.getJSONObject("response").getJSONObject("venue");
+		    					Checkin c = new Checkin();
+								JSONArray tip = place.getJSONObject("venue").getJSONObject("tips").getJSONArray("groups");
+								for(int i  = 0; i < tip.length(); i++) {
+									JSONArray tips = tip.getJSONObject(i).getJSONArray("items");
+										if(tips.length() != 0) {
+											for(int j = 0; j<tip.length(); j++) {
+												tipVector.add(tips.getJSONObject(j).optString("text", null));
+												Log.i("4sqVenue", tips.getJSONObject(j).optString("text", null));
+											}
+											//c.setTips(tips);
+										}else{
+											//c.setTips(null);
+										}
+								}
+	    				}
+	    		}catch(Exception e){
+	    			
+	    		}
+		return tipVector;
+	 }
 		 
 		public static void writeCheckins(SQLiteDatabase hDB, Vector<Checkin> checkins, boolean userCheckin, boolean delete) {
 			if (delete) {
@@ -196,18 +232,47 @@ public class GeneralMethods {
 					checkin.setID(c.getString(c.getColumnIndexOrThrow("id")));
 					checkin.setLat(c.getDouble(c.getColumnIndexOrThrow("lat")));
 					checkin.setLong(c.getDouble(c.getColumnIndexOrThrow("long")));
+					checkin.setAddress(c.getString(c.getColumnIndexOrThrow("address")));
+					checkin.setCategory(c.getString(c.getColumnIndexOrThrow("category")));
 				}
 				c.close();
 				return checkin;
 			}else{
+				return null;
+			}
+			
+		}
+		
+		public static Checkin queryPlaceById(SQLiteDatabase hDB, String name) {
+			Cursor c = null;
+				try{
+					c = hDB.rawQuery("SELECT * FROM hCheckins WHERE id='" + name + "';", null);
+				}catch(Exception e){
+					Log.e("Query Checkins", "Error querying Database" + e);
+				}
+			
+			Checkin checkin = new Checkin();
+			if(c != null) {
+				c.moveToFirst();
+				System.out.println(c.toString());
+				for(boolean hasData = c.moveToFirst(); hasData; hasData = c.moveToNext()){
+					checkin.setName(c.getString(c.getColumnIndexOrThrow("name")));
+					checkin.setID(c.getString(c.getColumnIndexOrThrow("id")));
+					checkin.setLat(c.getDouble(c.getColumnIndexOrThrow("lat")));
+					checkin.setLong(c.getDouble(c.getColumnIndexOrThrow("long")));
+					checkin.setAddress(c.getString(c.getColumnIndexOrThrow("address")));
+					checkin.setCategory(c.getString(c.getColumnIndexOrThrow("category")));
+				}
 				c.close();
+				return checkin;
+			}else{
 				return null;
 			}
 			
 		}
 
 		// Calls a URI and returns the answer as a JSON object
-	    private static JSONObject executeHttpGet(String uri) throws Exception{
+	    static JSONObject executeHttpGet(String uri) throws Exception{
 	    	String result = null;
 	    	HttpGet req = new HttpGet(uri);
 	    	HttpClient client = new DefaultHttpClient();
@@ -295,18 +360,17 @@ public class GeneralMethods {
 				return null;
 	    }
 	    
-	    public static Vector<String> searchPlaces(Context context, SharedPreferences hPrefs, SQLiteDatabase hDB, String query) {
+	    public static Vector<String> searchPlaces(Context context, SharedPreferences hPrefs, SQLiteDatabase hDB, String query, Location l) {
 	    	Vector<String> locations = new Vector<String>();
 	    	Vector<Checkin> search = new Vector<Checkin>();
 	    	if(hPrefs.getString("4sqAccessToken", null) != null) {
 	    		String code = hPrefs.getString("4sqAccessToken", null);
-	    		Location l = getLocation(context);
-	    		String loc = l.getLatitude() + "," + l.getLongitude();
+	    		String loc = l.getLatitude() + "," + l.getLongitude(); 
 	    		String locURL = "https://api.foursquare.com/v2/venues/search?oauth_token=" + code + "&ll=" + loc;
 	    		String searchURL = "https://api.foursquare.com/v2/venues/search?oauth_token=" + code + "&ll=" + loc + "&query=" + query;
 	    		JSONObject places = null;
 	    		
-	    		try{
+	    		try{  
 	    			if(query == null) {
 	    				places = executeHttpGet(locURL);
 	    			}else{
@@ -324,8 +388,10 @@ public class GeneralMethods {
     							Checkin c = new Checkin();
     							c.setID(obj.optString("id", null));
     							c.setName(obj.optString("name", null));
+    							Log.i("4sqVenue", obj.optString("name", null));
     							if(obj.optJSONObject("location") != null) {
     								c.setAddress(obj.optJSONObject("location").optString("address", null));
+    								Log.i("4sqVenue", obj.optJSONObject("location").optString("address", null));
         							c.setLat(obj.optJSONObject("location").optDouble("lat"));
         							c.setLong(obj.optJSONObject("location").optDouble("lng"));
     							}else{
@@ -349,6 +415,11 @@ public class GeneralMethods {
 	    								search.add(c);
 	    							}
     						}
+    						NearbyActivity.update(locations, context);
+    						Checkin c = GeneralMethods.queryPlace(hDB, locations.firstElement());
+    			    		String description = "You are at " + c.getName() + " which is a " + c.getCategory() + " and is at " + c.getAddress();
+    						EstimateActivity.setTheTextViewStuff(locations.firstElement(), description);
+    						Log.i("4sqVenue", "Updated places");
     						writeCheckins(hDB, search, false, true);
     				}
 	    		}catch(Exception e){
@@ -363,13 +434,13 @@ public class GeneralMethods {
 
 	    public static Location getLocation(Context context)
 	    {
-	        LocationManager lm;
+	        /*LocationManager lm;
 	        boolean gps_enabled=false;
 	        boolean network_enabled=false;
-	    	Toast.makeText(context, "Getting Location, please Wait.....", Toast.LENGTH_LONG);
+	    	Toast.makeText(context, "Getting Location, please Wait.....", Toast.LENGTH_LONG).show();
 	        
 	    	lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-
+	    	//LocListen ll = new LocListen();
 	        try{
 	        	gps_enabled=lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
 	        	network_enabled=lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
@@ -383,11 +454,15 @@ public class GeneralMethods {
 	        }
 	        Location c = null;
 		        if(gps_enabled)
+		        	lm.requestLocationUpdates(lm.GPS_PROVIDER, 100, 2, ll);
 		            c = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+		            lm.removeUpdates(ll);
 		        if(network_enabled)
+		        	lm.requestLocationUpdates(lm.NETWORK_PROVIDER, 100, 2, ll);
 		            c = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-		    Toast.makeText(context, "Got Location!", Toast.LENGTH_LONG);
-	        return c;
+		            lm.removeUpdates(ll);
+		    Toast.makeText(context, "Got Location!", Toast.LENGTH_LONG);*/
+	        return null;
 	    }
 
 }
